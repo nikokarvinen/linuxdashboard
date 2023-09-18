@@ -1,8 +1,21 @@
+import StorageIcon from '@mui/icons-material/Storage'
+import {
+  Box,
+  CircularProgress,
+  Container,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 
 const ProcessesInfo = () => {
-  const [processes, setProcesses] = useState([])
+  const [processes, setProcesses] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,35 +31,43 @@ const ProcessesInfo = () => {
   }, [])
 
   return (
-    <div>
-      <h2>Running Processes</h2>
-      {processes.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>PID</th>
-              <th>CPU (%)</th>
-              <th>Memory (%)</th>
-              <th>Command</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processes.map((process, index) => (
-              <tr key={index}>
-                <td>{process.user}</td>
-                <td>{process.pid}</td>
-                <td>{process.cpu}</td>
-                <td>{process.mem}</td>
-                <td>{process.command}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <Container
+      component={Paper}
+      elevation={3}
+      style={{ padding: '16px', marginTop: '16px' }}
+    >
+      <Typography variant="h5" gutterBottom>
+        <StorageIcon /> Running Processes
+      </Typography>
+      {!processes ? (
+        <CircularProgress />
       ) : (
-        <p>Loading processes info...</p>
+        <Box>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>User</TableCell>
+                <TableCell>PID</TableCell>
+                <TableCell>CPU (%)</TableCell>
+                <TableCell>Memory (%)</TableCell>
+                <TableCell>Command</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {processes.map((process, index) => (
+                <TableRow key={index}>
+                  <TableCell>{process.user}</TableCell>
+                  <TableCell>{process.pid}</TableCell>
+                  <TableCell>{process.cpu}</TableCell>
+                  <TableCell>{process.mem}</TableCell>
+                  <TableCell>{process.command}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       )}
-    </div>
+    </Container>
   )
 }
 

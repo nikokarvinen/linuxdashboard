@@ -1,3 +1,11 @@
+import TimerIcon from '@mui/icons-material/Timer'
+import {
+  Box,
+  CircularProgress,
+  Container,
+  Paper,
+  Typography,
+} from '@mui/material'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 
@@ -18,10 +26,22 @@ const UptimeInfo = () => {
   }, [])
 
   return (
-    <div>
-      <h2>System Uptime</h2>
-      {uptime ? <p>{uptime}</p> : <p>Loading uptime information...</p>}
-    </div>
+    <Container
+      component={Paper}
+      elevation={3}
+      style={{ padding: '16px', marginTop: '16px' }}
+    >
+      <Typography variant="h5" gutterBottom>
+        <TimerIcon /> System Uptime
+      </Typography>
+      {!uptime ? (
+        <CircularProgress />
+      ) : (
+        <Box>
+          <Typography variant="body1">{uptime}</Typography>
+        </Box>
+      )}
+    </Container>
   )
 }
 

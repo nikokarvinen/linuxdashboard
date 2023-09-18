@@ -1,3 +1,6 @@
+import MemoryIcon from '@mui/icons-material/Memory'
+import { Box, Container, Paper, Typography } from '@mui/material'
+import CircularProgress from '@mui/material/CircularProgress'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 
@@ -18,18 +21,24 @@ const CpuInfo = () => {
   }, [])
 
   return (
-    <div>
-      <h1>CPU Info</h1>
-      {cpuInfo ? (
-        <div>
-          <p>
-            <strong>Architecture:</strong> {cpuInfo.Architecture}
-          </p>
-        </div>
+    <Container
+      component={Paper}
+      elevation={3}
+      style={{ padding: '16px', marginTop: '16px' }}
+    >
+      <Typography variant="h5" gutterBottom>
+        <MemoryIcon /> CPU Info
+      </Typography>
+      {!cpuInfo ? (
+        <CircularProgress />
       ) : (
-        <p>Loading CPU information...</p>
+        <Box>
+          <Typography variant="body1">
+            <strong>Architecture:</strong> {cpuInfo.Architecture}
+          </Typography>
+        </Box>
       )}
-    </div>
+    </Container>
   )
 }
 

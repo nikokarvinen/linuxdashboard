@@ -1,8 +1,21 @@
+import WifiIcon from '@mui/icons-material/Wifi'
+import {
+  Box,
+  CircularProgress,
+  Container,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 
 const NetworkInfo = () => {
-  const [networkInfo, setNetworkInfo] = useState([])
+  const [networkInfo, setNetworkInfo] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,29 +31,37 @@ const NetworkInfo = () => {
   }, [])
 
   return (
-    <div>
-      <h2>Network Interfaces</h2>
-      {networkInfo.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>IP Address</th>
-            </tr>
-          </thead>
-          <tbody>
-            {networkInfo.map((network, index) => (
-              <tr key={index}>
-                <td>{network.name}</td>
-                <td>{network.inet}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <Container
+      component={Paper}
+      elevation={3}
+      style={{ padding: '16px', marginTop: '16px' }}
+    >
+      <Typography variant="h5" gutterBottom>
+        <WifiIcon /> Network Interfaces
+      </Typography>
+      {!networkInfo ? (
+        <CircularProgress />
       ) : (
-        <p>Loading network info...</p>
+        <Box>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>IP Address</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {networkInfo.map((network, index) => (
+                <TableRow key={index}>
+                  <TableCell>{network.name}</TableCell>
+                  <TableCell>{network.inet}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       )}
-    </div>
+    </Container>
   )
 }
 

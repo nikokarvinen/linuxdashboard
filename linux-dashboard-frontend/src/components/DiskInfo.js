@@ -1,8 +1,21 @@
+import StorageIcon from '@mui/icons-material/Storage'
+import {
+  Box,
+  CircularProgress,
+  Container,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 
 const DiskInfo = () => {
-  const [diskInfo, setDiskInfo] = useState([])
+  const [diskInfo, setDiskInfo] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,37 +31,45 @@ const DiskInfo = () => {
   }, [])
 
   return (
-    <div>
-      <h2>Disk Info</h2>
-      {diskInfo.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>Filesystem</th>
-              <th>Size</th>
-              <th>Used</th>
-              <th>Available</th>
-              <th>Use %</th>
-              <th>Mounted on</th>
-            </tr>
-          </thead>
-          <tbody>
-            {diskInfo.map((disk, index) => (
-              <tr key={index}>
-                <td>{disk.filesystem}</td>
-                <td>{disk.size}</td>
-                <td>{disk.used}</td>
-                <td>{disk.available}</td>
-                <td>{disk.usePercent}</td>
-                <td>{disk.mounted}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <Container
+      component={Paper}
+      elevation={3}
+      style={{ padding: '16px', marginTop: '16px' }}
+    >
+      <Typography variant="h5" gutterBottom>
+        <StorageIcon /> Disk Info
+      </Typography>
+      {!diskInfo ? (
+        <CircularProgress />
       ) : (
-        <p>Loading disk info...</p>
+        <Box>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Filesystem</TableCell>
+                <TableCell>Size</TableCell>
+                <TableCell>Used</TableCell>
+                <TableCell>Available</TableCell>
+                <TableCell>Use %</TableCell>
+                <TableCell>Mounted on</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {diskInfo.map((disk, index) => (
+                <TableRow key={index}>
+                  <TableCell>{disk.filesystem}</TableCell>
+                  <TableCell>{disk.size}</TableCell>
+                  <TableCell>{disk.used}</TableCell>
+                  <TableCell>{disk.available}</TableCell>
+                  <TableCell>{disk.usePercent}</TableCell>
+                  <TableCell>{disk.mounted}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       )}
-    </div>
+    </Container>
   )
 }
 

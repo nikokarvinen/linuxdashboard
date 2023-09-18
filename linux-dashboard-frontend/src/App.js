@@ -10,10 +10,10 @@ function App() {
   return (
     <div className="App">
       <CpuInfo />
-      <MemoryInfo />
       <Diskinfo />
-      <ProcessesInfo />
       <NetworkInfo />
+      <ProcessesInfo />
+      <MemoryInfo />
       <UptimeInfo />
     </div>
   )
