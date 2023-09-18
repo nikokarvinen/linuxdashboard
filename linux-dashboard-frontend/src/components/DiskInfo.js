@@ -13,15 +13,31 @@ import {
 } from '@mui/material'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
+import DiskPieChart from './DiskPieChart'
 
 const DiskInfo = () => {
   const [diskInfo, setDiskInfo] = useState(null)
+  const [diskData, setDiskData] = useState([])
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get('http://localhost:5000/disk')
         setDiskInfo(response.data.data)
+
+        // Laske free ja used arvot datan perusteella
+        const calculatedFree = response.data.data.reduce((total, disk) => {
+          return total + parseFloat(disk.available)
+        }, 0)
+
+        const calculatedUsed = response.data.data.reduce((total, disk) => {
+          return total + parseFloat(disk.used)
+        }, 0)
+
+        setDiskData([
+          { name: 'Free', value: calculatedFree },
+          { name: 'Used', value: calculatedUsed },
+        ])
       } catch (error) {
         console.error('An error occurred while fetching disk info:', error)
       }
@@ -67,6 +83,9 @@ const DiskInfo = () => {
               ))}
             </TableBody>
           </Table>
+          {diskData && diskData.length > 0 && (
+            <DiskPieChart diskData={diskData} />
+          )}
         </Box>
       )}
     </Container>
