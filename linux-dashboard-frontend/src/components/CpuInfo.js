@@ -1,4 +1,5 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import InfoIcon from '@mui/icons-material/Info'
 import MemoryIcon from '@mui/icons-material/Memory'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import {
@@ -13,6 +14,7 @@ import {
   Select,
   Typography,
 } from '@mui/material'
+import Tooltip from '@mui/material/Tooltip'
 import axios from 'axios'
 import moment from 'moment'
 import React, { useCallback, useEffect, useState } from 'react'
@@ -73,7 +75,7 @@ const CpuInfo = () => {
         padding: '0',
         width: '80%',
         margin: '0 auto',
-        marginBottom: '17px'
+        marginBottom: '17px',
       }}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -83,14 +85,20 @@ const CpuInfo = () => {
           justifyContent="space-between"
           width="100%"
         >
-          <Typography variant="h5">
-            <MemoryIcon /> CPU Info
-          </Typography>
+          <Box display="flex" alignItems="center">
+            <Typography variant="h5">
+              <MemoryIcon /> CPU Info
+            </Typography>
+            <Tooltip title="The CPU Info section provides information on the CPU architecture and its performance over a specified time range.">
+              <InfoIcon fontSize="small" style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </Box>
           <IconButton onClick={handleRefresh}>
             <RefreshIcon />
           </IconButton>
         </Box>
       </AccordionSummary>
+
       <AccordionDetails style={{ padding: '8px', textAlign: 'left' }}>
         <Paper elevation={0} style={{ width: '100%', padding: '8px' }}>
           {/* Check if there's an error */}

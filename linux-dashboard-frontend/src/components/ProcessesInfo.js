@@ -1,4 +1,5 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import InfoIcon from '@mui/icons-material/Info'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import StorageIcon from '@mui/icons-material/Storage'
 import {
@@ -20,6 +21,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import Tooltip from '@mui/material/Tooltip'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 
@@ -111,6 +113,7 @@ const ProcessesInfo = () => {
       elevation={3}
       style={{
         marginTop: '16px',
+        marginBottom: '17px',
         padding: '0',
         width: '80%',
         margin: '0 auto',
@@ -123,14 +126,20 @@ const ProcessesInfo = () => {
           justifyContent="space-between"
           width="100%"
         >
-          <Typography variant="h5">
-            <StorageIcon /> Running Processes
-          </Typography>
+          <Box display="flex" alignItems="center">
+            <Typography variant="h5">
+              <StorageIcon /> Running Processes
+            </Typography>
+            <Tooltip title="Running Processes displays information about the currently executing processes, including user, process ID, CPU usage, memory usage, and command details.">
+              <InfoIcon fontSize="small" style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </Box>
           <IconButton onClick={handleRefresh}>
             <RefreshIcon />
           </IconButton>
         </Box>
       </AccordionSummary>
+
       <AccordionDetails style={{ padding: '8px', textAlign: 'left' }}>
         <Paper elevation={0} style={{ width: '100%', padding: '8px' }}>
           <TextField

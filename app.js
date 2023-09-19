@@ -1,7 +1,7 @@
 const express = require('express')
 const { exec } = require('child_process')
 const cors = require('cors')
-const os = require('os-utils')
+const os = require('os')
 
 const app = express()
 const port = 5000
@@ -13,6 +13,43 @@ app.use(
     credentials: true,
   })
 )
+
+let lastMeasure = {
+  idle: 0,
+  total: 0,
+}
+
+function cpuAverage() {
+  const cpus = os.cpus()
+  let idle = 0
+  let total = 0
+
+  cpus.forEach((cpu) => {
+    for (const type in cpu.times) {
+      total += cpu.times[type]
+    }
+    idle += cpu.times.idle
+  })
+
+  return {
+    idle: idle / cpus.length,
+    total: total / cpus.length,
+  }
+}
+
+function cpuUsage() {
+  const startMeasure = cpuAverage()
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const endMeasure = cpuAverage()
+      const idleDifference = endMeasure.idle - startMeasure.idle
+      const totalDifference = endMeasure.total - startMeasure.total
+      const percentage = 100 - (idleDifference / totalDifference) * 100
+      resolve(percentage)
+    }, 100)
+  })
+}
 
 // Function to execute shell commands
 const executeCommand = (command) => {
@@ -30,18 +67,17 @@ const executeCommand = (command) => {
 let cpuData = []
 const MAX_LENGTH = 120 // e.g., 120 points for 60 minutes
 
-// Collec CPU usage data
-setInterval(() => {
-  os.cpuUsage(function (v) {
-    const cpuUsage = v * 100 // CPU usage as a percentage
-    const time = new Date().toISOString() // ISO format time string
-    cpuData.push({ name: time, cpuUsage }) // Push new data point
+// Collect CPU usage data
+setInterval(async () => {
+  const currentCpuUsage = await cpuUsage() // call our new cpuUsage function
+  const cpuUsagePercentage = currentCpuUsage // CPU usage as a percentage
+  const time = new Date().toISOString() // ISO format time string
+  cpuData.push({ name: time, cpuUsage: cpuUsagePercentage }) // Push new data point
 
-    // Limit the data array to MAX_LENGTH
-    if (cpuData.length > MAX_LENGTH) {
-      cpuData.shift() // Remove the oldest data point
-    }
-  })
+  // Limit the data array to MAX_LENGTH
+  if (cpuData.length > MAX_LENGTH) {
+    cpuData.shift() // Remove the oldest data point
+  }
 }, 30 * 1000) // Collect data every 30 seconds
 
 // Define the '/cpu' endpoint
@@ -160,10 +196,10 @@ app.get('/network', async (req, res) => {
 
 app.get('/uptime', async (req, res) => {
   try {
-    const output = await executeCommand('uptime -p')
-    res.json({ data: { uptime: output } })
+    const uptimeInSeconds = os.uptime()
+    res.json({ data: { uptime: uptimeInSeconds } })
   } catch (error) {
-    console.error(`Error executing command: ${error}`)
+    console.error(`Error fetching uptime: ${error}`)
     res.status(500).json({ error: `Internal Server Error: ${error.message}` })
   }
 })
