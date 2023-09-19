@@ -1,9 +1,12 @@
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import StorageIcon from '@mui/icons-material/Storage'
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   CircularProgress,
-  Container,
   IconButton,
   Paper,
   Table,
@@ -54,7 +57,9 @@ const ProcessesInfo = () => {
     }
   }, [searchTerm, processes])
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (e) => {
+    e.stopPropagation() // Prevent event propagation
+
     try {
       const response = await axios.get('http://localhost:5000/processes')
       setProcesses(response.data.data)
@@ -62,6 +67,12 @@ const ProcessesInfo = () => {
     } catch (error) {
       console.error('An error occurred:', error)
     }
+  }
+
+  const [isAccordionExpanded, setAccordionExpanded] = useState(true)
+
+  const handleAccordionToggle = (event, newExpandedState) => {
+    setAccordionExpanded(newExpandedState)
   }
 
   const handleChangePage = (event, newPage) => {
@@ -94,86 +105,112 @@ const ProcessesInfo = () => {
   )
 
   return (
-    <Container
-      component={Paper}
+    <Accordion
+      expanded={isAccordionExpanded}
+      onChange={handleAccordionToggle}
       elevation={3}
-      style={{ padding: '16px', marginTop: '16px' }}
+      style={{
+        marginTop: '16px',
+        padding: '0',
+        width: '80%',
+        margin: '0 auto',
+      }}
     >
-      <Box display="flex" alignItems="center" justifyContent="space-between">
-        <Typography variant="h5">
-          <StorageIcon /> Running Processes
-        </Typography>
-        <IconButton onClick={handleRefresh}>
-          <RefreshIcon />
-        </IconButton>
-      </Box>
-      <TextField
-        label="Search"
-        variant="outlined"
-        size="small"
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
-      {!displayedProcesses ? (
-        <CircularProgress />
-      ) : (
-        <Box>
-          <Table>
-            <TableHead>
-              <TableRow>
-                {['User', 'PID', 'CPU (%)', 'Memory (%)', 'Command'].map(
-                  (headCell) => (
-                    <TableCell
-                      key={headCell}
-                      sortDirection={
-                        orderBy === headCell.toLowerCase() ? sortOrder : false
-                      }
-                    >
-                      <TableSortLabel
-                        active={orderBy === headCell.toLowerCase()}
-                        direction={
-                          orderBy === headCell.toLowerCase() ? sortOrder : 'asc'
-                        }
-                        onClick={() => handleSort(headCell.toLowerCase())}
-                      >
-                        {headCell}
-                      </TableSortLabel>
-                    </TableCell>
-                  )
-                )}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {displayedProcesses.map((process, index) => (
-                <TableRow key={index}>
-                  <TableCell>{process.user}</TableCell>
-                  <TableCell>{process.pid}</TableCell>
-                  <TableCell>{process.cpu}</TableCell>
-                  <TableCell>{process.mem}</TableCell>
-                  <TableCell>{process.command}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25, 50]}
-                  colSpan={5}
-                  count={filteredProcesses?.length || 0}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  SelectProps={{
-                    inputProps: { 'aria-label': 'rows per page' },
-                    native: true,
-                  }}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-              </TableRow>
-            </TableFooter>
-          </Table>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          width="100%"
+        >
+          <Typography variant="h5">
+            <StorageIcon /> Running Processes
+          </Typography>
+          <IconButton onClick={handleRefresh}>
+            <RefreshIcon />
+          </IconButton>
         </Box>
-      )}
-    </Container>
+      </AccordionSummary>
+      <AccordionDetails style={{ padding: '8px', textAlign: 'left' }}>
+        <Paper elevation={0} style={{ width: '100%', padding: '8px' }}>
+          <TextField
+            label="Search"
+            variant="outlined"
+            size="small"
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {!displayedProcesses ? (
+            <Box display="flex" justifyContent="center" alignItems="center">
+              <CircularProgress />
+              <Typography variant="body1" style={{ marginLeft: '16px' }}>
+                Loading Process data...
+              </Typography>
+            </Box>
+          ) : (
+            <Box>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {['User', 'PID', 'CPU (%)', 'Memory (%)', 'Command'].map(
+                      (headCell) => (
+                        <TableCell
+                          key={headCell}
+                          sortDirection={
+                            orderBy === headCell.toLowerCase()
+                              ? sortOrder
+                              : false
+                          }
+                        >
+                          <TableSortLabel
+                            active={orderBy === headCell.toLowerCase()}
+                            direction={
+                              orderBy === headCell.toLowerCase()
+                                ? sortOrder
+                                : 'asc'
+                            }
+                            onClick={() => handleSort(headCell.toLowerCase())}
+                          >
+                            {headCell}
+                          </TableSortLabel>
+                        </TableCell>
+                      )
+                    )}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {displayedProcesses.map((process, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{process.user}</TableCell>
+                      <TableCell>{process.pid}</TableCell>
+                      <TableCell>{process.cpu}</TableCell>
+                      <TableCell>{process.mem}</TableCell>
+                      <TableCell>{process.command}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TablePagination
+                      rowsPerPageOptions={[5, 10, 25, 50]}
+                      colSpan={5}
+                      count={filteredProcesses?.length || 0}
+                      rowsPerPage={rowsPerPage}
+                      page={page}
+                      SelectProps={{
+                        inputProps: { 'aria-label': 'rows per page' },
+                        native: true,
+                      }}
+                      onPageChange={handleChangePage}
+                      onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </Box>
+          )}
+        </Paper>
+      </AccordionDetails>
+    </Accordion>
   )
 }
 

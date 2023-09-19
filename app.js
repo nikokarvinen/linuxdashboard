@@ -1,6 +1,7 @@
 const express = require('express')
 const { exec } = require('child_process')
 const cors = require('cors')
+const os = require('os-utils')
 
 const app = express()
 const port = 5000
@@ -27,19 +28,21 @@ const executeCommand = (command) => {
 }
 
 let cpuData = []
-const MAX_LENGTH = 60 // e.g., 60 points for 60 minutes
+const MAX_LENGTH = 120 // e.g., 120 points for 60 minutes
 
-// Simulated CPU usage data collection
+// Collec CPU usage data
 setInterval(() => {
-  const cpuUsage = Math.random() // Simulating CPU usage as a random number
-  const time = new Date().toISOString() // ISO format time string
-  cpuData.push({ name: time, cpuUsage }) // Push new data point
+  os.cpuUsage(function (v) {
+    const cpuUsage = v * 100 // CPU usage as a percentage
+    const time = new Date().toISOString() // ISO format time string
+    cpuData.push({ name: time, cpuUsage }) // Push new data point
 
-  // Limit the data array to MAX_LENGTH
-  if (cpuData.length > MAX_LENGTH) {
-    cpuData.shift() // Remove the oldest data point
-  }
-}, 60 * 1000) // Collect data every 60 seconds (1 minute)
+    // Limit the data array to MAX_LENGTH
+    if (cpuData.length > MAX_LENGTH) {
+      cpuData.shift() // Remove the oldest data point
+    }
+  })
+}, 30 * 1000) // Collect data every 30 seconds
 
 // Define the '/cpu' endpoint
 app.get('/cpu', async (req, res) => {
