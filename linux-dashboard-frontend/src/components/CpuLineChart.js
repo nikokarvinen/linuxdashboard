@@ -1,5 +1,6 @@
 import { Box } from '@mui/material'
-import React, { useState } from 'react'
+import moment from 'moment'
+import React from 'react'
 import {
   Brush,
   CartesianGrid,
@@ -11,36 +12,42 @@ import {
   YAxis,
 } from 'recharts'
 
-const CpuLineChart = ({ cpuData }) => {
-  const [lineVisibility, setLineVisibility] = useState(true)
+// Function to format date-time for the X-axis labels
+const formatDateTick = (tickItem) => {
+  return moment(tickItem).format('HH:mm') // Format the time as HH:mm
+}
 
-  const toggleLine = () => {
-    setLineVisibility(!lineVisibility)
-    console.log('cpuData:', cpuData) // <-- Add this line for debugging
+// Custom tooltip to make time display in a more readable format
+const CustomTooltip = ({ payload, label, active }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="custom-tooltip">
+        <p className="label">{`Time: ${moment(label).format('HH:mm')}`}</p>
+        <p className="intro">{`CPU Usage: ${payload[0].value}`}</p>
+      </div>
+    )
   }
+  return null
+}
 
+const CpuLineChart = ({ cpuData }) => {
   return (
     <Box>
-      <button onClick={toggleLine}>
-        {lineVisibility ? 'Hide' : 'Show'} Line
-      </button>
       <LineChart width={500} height={300} data={cpuData}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
+        <XAxis dataKey="name" tickFormatter={formatDateTick} />
         <YAxis
           label={{ value: 'CPU Usage (%)', angle: -90, position: 'insideLeft' }}
         />
-        <Tooltip />
+        <Tooltip content={<CustomTooltip />} />
         <Legend />
         <Brush dataKey="name" height={30} stroke="#8884d8" />
-        {lineVisibility && (
-          <Line
-            type="monotone"
-            dataKey="cpuUsage"
-            stroke="#8884d8"
-            activeDot={{ r: 8 }}
-          />
-        )}
+        <Line
+          type="monotone"
+          dataKey="cpuUsage"
+          stroke="#8884d8"
+          activeDot={{ r: 8 }}
+        />
       </LineChart>
     </Box>
   )

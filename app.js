@@ -13,6 +13,7 @@ app.use(
   })
 )
 
+// Function to execute shell commands
 const executeCommand = (command) => {
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
@@ -28,20 +29,25 @@ const executeCommand = (command) => {
 let cpuData = []
 const MAX_LENGTH = 60 // e.g., 60 points for 60 minutes
 
+// Simulated CPU usage data collection
 setInterval(() => {
-  // Simulate CPU usage data collection
-  const cpuUsage = Math.random()
-  const time = new Date().toISOString()
-  cpuData.push({ name: time, cpuUsage })
+  const cpuUsage = Math.random() // Simulating CPU usage as a random number
+  const time = new Date().toISOString() // ISO format time string
+  cpuData.push({ name: time, cpuUsage }) // Push new data point
 
-  // Remove old data points
+  // Limit the data array to MAX_LENGTH
   if (cpuData.length > MAX_LENGTH) {
-    cpuData.shift()
+    cpuData.shift() // Remove the oldest data point
   }
-}, 60 * 1000) // Collect data every minute
+}, 60 * 1000) // Collect data every 60 seconds (1 minute)
 
+// Define the '/cpu' endpoint
 app.get('/cpu', async (req, res) => {
+  // Get the requested time range from query params, or default to MAX_LENGTH
+  const range = parseInt(req.query.range) || MAX_LENGTH
+
   try {
+    // Execute the 'lscpu' command and process its output
     const cpuInfoOutput = await executeCommand('lscpu')
     const lines = cpuInfoOutput.split('\n')
     const cpuInfo = {}
@@ -55,17 +61,8 @@ app.get('/cpu', async (req, res) => {
       }
     })
 
-    const uptimeOutput = await executeCommand('uptime')
-    const loadAverages = uptimeOutput
-      .match(/load average: (.*)/)[1]
-      .split(',')
-      .map((s) => parseFloat(s.trim()))
-    const newCpuData = loadAverages.map((avg, i) => ({
-      name: `${i + 1}m`,
-      cpuUsage: avg,
-    }))
-
-    res.json({ data: cpuInfo, cpuData: newCpuData }) // Using newCpuData here
+    // Send the processed 'lscpu' information and the last 'range' CPU data points
+    res.json({ data: cpuInfo, cpuData: cpuData.slice(-range) })
   } catch (error) {
     console.error(`Error executing command: ${error}`)
     res.status(500).json({ error: `Internal Server Error: ${error.message}` })
