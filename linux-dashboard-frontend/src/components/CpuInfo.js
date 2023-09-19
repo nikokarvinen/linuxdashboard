@@ -9,26 +9,21 @@ const CpuInfo = () => {
   const [cpuInfo, setCpuInfo] = useState(null)
   const [cpuData, setCpuData] = useState([])
 
-  // Kovakoodattu CPU-käyttödata
-  const hardcodedCpuData = [
-    { name: '1s', cpuUsage: 20 },
-    { name: '2s', cpuUsage: 25 },
-    // Lisää tarvittavat aikasarjadatat tähän
-  ]
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get('http://localhost:5000/cpu')
-        console.log('CPU Data:', response.data.data)
         setCpuInfo(response.data.data)
-        setCpuData(response.data.cpuData) // Assuming this is where you receive CPU usage data
+        setCpuData(response.data.cpuData)
       } catch (error) {
         console.error('An error occurred while fetching CPU info:', error)
       }
     }
 
     fetchData()
+    const intervalId = setInterval(fetchData, 60 * 1000) // Fetch data every minute
+
+    return () => clearInterval(intervalId) // Cleanup on component unmount
   }, [])
 
   return (
@@ -47,11 +42,12 @@ const CpuInfo = () => {
           <Typography variant="body1">
             <strong>Architecture:</strong> {cpuInfo.Architecture}
           </Typography>
-          {cpuData && cpuData.length > 0 ? (
+          {cpuData.length > 0 ? (
             <CpuLineChart cpuData={cpuData} />
           ) : (
-            // Käytä kovakoodattua dataa, jos `cpuData` ei ole saatavilla
-            <CpuLineChart cpuData={hardcodedCpuData} />
+            <Typography variant="body1">
+              No CPU usage data available.
+            </Typography>
           )}
         </Box>
       )}

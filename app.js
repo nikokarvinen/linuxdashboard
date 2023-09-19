@@ -25,10 +25,25 @@ const executeCommand = (command) => {
   })
 }
 
+let cpuData = []
+const MAX_LENGTH = 60 // e.g., 60 points for 60 minutes
+
+setInterval(() => {
+  // Simulate CPU usage data collection
+  const cpuUsage = Math.random()
+  const time = new Date().toISOString()
+  cpuData.push({ name: time, cpuUsage })
+
+  // Remove old data points
+  if (cpuData.length > MAX_LENGTH) {
+    cpuData.shift()
+  }
+}, 60 * 1000) // Collect data every minute
+
 app.get('/cpu', async (req, res) => {
   try {
-    const output = await executeCommand('lscpu')
-    const lines = output.split('\n')
+    const cpuInfoOutput = await executeCommand('lscpu')
+    const lines = cpuInfoOutput.split('\n')
     const cpuInfo = {}
 
     lines.forEach((line) => {
@@ -40,7 +55,17 @@ app.get('/cpu', async (req, res) => {
       }
     })
 
-    res.json({ data: cpuInfo })
+    const uptimeOutput = await executeCommand('uptime')
+    const loadAverages = uptimeOutput
+      .match(/load average: (.*)/)[1]
+      .split(',')
+      .map((s) => parseFloat(s.trim()))
+    const newCpuData = loadAverages.map((avg, i) => ({
+      name: `${i + 1}m`,
+      cpuUsage: avg,
+    }))
+
+    res.json({ data: cpuInfo, cpuData: newCpuData }) // Using newCpuData here
   } catch (error) {
     console.error(`Error executing command: ${error}`)
     res.status(500).json({ error: `Internal Server Error: ${error.message}` })
