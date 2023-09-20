@@ -15,20 +15,43 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
-import Tooltip from '@mui/material/Tooltip'
+import { styled } from '@mui/system'
 import axios from 'axios'
 import React, { useCallback, useEffect, useState } from 'react'
 
+const useStyles = styled({
+  accordion: {
+    marginTop: '16px',
+    marginBottom: '17px',
+    padding: '0',
+    width: '80%',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  infoIcon: {
+    marginLeft: '8px',
+  },
+  filterTextField: {
+    marginBottom: '16px',
+  },
+})
+
 const NetworkInfo = () => {
-  const [networkInfo, setNetworkInfo] = useState(null)
+  const classes = useStyles()
+  const [networkInfo, setNetworkInfo] = useState([])
+  const [sortedInfo, setSortedInfo] = useState([])
   const [isAccordionExpanded, setAccordionExpanded] = useState(true)
+  const [filter, setFilter] = useState('')
 
   const fetchNetworkData = useCallback(async () => {
     try {
       const response = await axios.get('http://localhost:5000/network')
       setNetworkInfo(response.data.data)
+      setSortedInfo(response.data.data)
     } catch (error) {
       console.error('An error occurred while fetching network info:', error)
     }
@@ -36,6 +59,8 @@ const NetworkInfo = () => {
 
   useEffect(() => {
     fetchNetworkData()
+    const intervalId = setInterval(fetchNetworkData, 5000)
+    return () => clearInterval(intervalId)
   }, [fetchNetworkData])
 
   const handleAccordionToggle = (event, newExpandedState) => {
@@ -47,6 +72,21 @@ const NetworkInfo = () => {
     fetchNetworkData()
   }
 
+  const handleFilterChange = (e) => {
+    const text = e.target.value
+    setFilter(text)
+    setSortedInfo(
+      networkInfo.filter((info) =>
+        info.name.toLowerCase().includes(text.toLowerCase())
+      )
+    )
+  }
+
+  const handleSortByName = () => {
+    const sorted = [...sortedInfo].sort((a, b) => a.name.localeCompare(b.name))
+    setSortedInfo(sorted)
+  }
+
   return (
     <Accordion
       expanded={isAccordionExpanded}
@@ -54,10 +94,11 @@ const NetworkInfo = () => {
       elevation={3}
       style={{
         marginTop: '16px',
+        marginBottom: '17px',
         padding: '0',
         width: '80%',
-        margin: '0 auto',
-        marginBottom: '17px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
       }}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -71,8 +112,8 @@ const NetworkInfo = () => {
             <Typography variant="h5">
               <WifiIcon /> Network Interfaces
             </Typography>
-            <Tooltip title="Network Interfaces displays the active network interfaces and their IP addresses.">
-              <InfoIcon fontSize="small" style={{ marginLeft: '8px' }} />
+            <Tooltip title="Network Interfaces displays the active network interfaces and their detailed metrics.">
+              <InfoIcon fontSize="small" className={classes.infoIcon} />
             </Tooltip>
           </Box>
           <Box>
@@ -82,10 +123,16 @@ const NetworkInfo = () => {
           </Box>
         </Box>
       </AccordionSummary>
-
       <AccordionDetails style={{ padding: '8px', textAlign: 'left' }}>
         <Paper elevation={0} style={{ width: '100%', padding: '8px' }}>
-          {networkInfo === null ? (
+          <TextField
+            label="Filter by name"
+            value={filter}
+            onChange={handleFilterChange}
+            className={classes.filterTextField}
+          />
+          <IconButton onClick={handleSortByName}>Sort by Name</IconButton>
+          {networkInfo.length === 0 ? (
             <Box display="flex" justifyContent="center" alignItems="center">
               <CircularProgress />
               <Typography variant="body1" style={{ marginLeft: '16px' }}>
@@ -97,14 +144,20 @@ const NetworkInfo = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
-                  <TableCell>IP Address</TableCell>
+                  <TableCell>Received Bytes</TableCell>
+                  <TableCell>Received Packets</TableCell>
+                  <TableCell>Transmitted Bytes</TableCell>
+                  <TableCell>Transmitted Packets</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {networkInfo.map((network, index) => (
-                  <TableRow key={index}>
+                {sortedInfo.map((network) => (
+                  <TableRow key={network.name}>
                     <TableCell>{network.name}</TableCell>
-                    <TableCell>{network.inet}</TableCell>
+                    <TableCell>{network.rxBytes}</TableCell>
+                    <TableCell>{network.rxPackets}</TableCell>
+                    <TableCell>{network.txBytes}</TableCell>
+                    <TableCell>{network.txPackets}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

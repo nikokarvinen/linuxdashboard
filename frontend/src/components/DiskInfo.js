@@ -71,10 +71,11 @@ const DiskInfo = () => {
       elevation={3}
       style={{
         marginTop: '16px',
+        marginBottom: '17px',
         padding: '0',
         width: '80%',
-        margin: '0 auto',
-        marginBottom: '17px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
       }}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>

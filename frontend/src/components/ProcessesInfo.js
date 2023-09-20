@@ -116,7 +116,8 @@ const ProcessesInfo = () => {
         marginBottom: '17px',
         padding: '0',
         width: '80%',
-        margin: '0 auto',
+        marginLeft: 'auto',
+        marginRight: 'auto',
       }}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>

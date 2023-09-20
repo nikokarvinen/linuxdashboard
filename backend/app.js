@@ -6,6 +6,7 @@ const os = require('os')
 const app = express()
 const port = 5000
 
+// Enable CORS for localhost development
 app.use(
   cors({
     origin: 'http://localhost:3000',
@@ -14,11 +15,7 @@ app.use(
   })
 )
 
-let lastMeasure = {
-  idle: 0,
-  total: 0,
-}
-
+// Helper function to get CPU average
 function cpuAverage() {
   const cpus = os.cpus()
   let idle = 0
@@ -37,6 +34,7 @@ function cpuAverage() {
   }
 }
 
+// Helper function to get CPU usage
 function cpuUsage() {
   const startMeasure = cpuAverage()
 
@@ -51,7 +49,7 @@ function cpuUsage() {
   })
 }
 
-// Function to execute shell commands
+// Helper function to execute shell commands
 const executeCommand = (command) => {
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
@@ -64,51 +62,45 @@ const executeCommand = (command) => {
   })
 }
 
-let cpuData = []
 const MAX_LENGTH = 120 // e.g., 120 points for 60 minutes
+let cpuData = []
 
-// Collect CPU usage data
+// Collect CPU usage data periodically
 setInterval(async () => {
-  const currentCpuUsage = await cpuUsage() // call our new cpuUsage function
-  const cpuUsagePercentage = currentCpuUsage // CPU usage as a percentage
-  const time = new Date().toISOString() // ISO format time string
-  cpuData.push({ name: time, cpuUsage: cpuUsagePercentage }) // Push new data point
+  const currentCpuUsage = await cpuUsage()
+  const time = new Date().toISOString()
+  cpuData.push({ name: time, cpuUsage: currentCpuUsage })
 
-  // Limit the data array to MAX_LENGTH
+  // Limit data array to MAX_LENGTH
   if (cpuData.length > MAX_LENGTH) {
-    cpuData.shift() // Remove the oldest data point
+    cpuData.shift()
   }
 }, 30 * 1000) // Collect data every 30 seconds
 
-// Define the '/cpu' endpoint
+// Handle GET reguest for CPU info
 app.get('/cpu', async (req, res) => {
-  // Get the requested time range from query params, or default to MAX_LENGTH
-  const range = parseInt(req.query.range) || MAX_LENGTH
-
   try {
-    // Execute the 'lscpu' command and process its output
     const cpuInfoOutput = await executeCommand('lscpu')
     const lines = cpuInfoOutput.split('\n')
     const cpuInfo = {}
 
     lines.forEach((line) => {
-      const parts = line.split(':')
-      if (parts.length === 2) {
-        const key = parts[0].trim()
-        const value = parts[1].trim()
+      const [key, value] = line.split(':').map((str) => str.trim())
+      if (key && value) {
         cpuInfo[key] = value
       }
     })
 
-    // Send the processed 'lscpu' information and the last 'range' CPU data points
-    res.json({ data: cpuInfo, cpuData: cpuData.slice(-range) })
+    res.json({ data: cpuInfo, cpuData: cpuData.slice(-MAX_LENGTH) })
   } catch (error) {
     console.error(`Error executing command: ${error}`)
     res.status(500).json({ error: `Internal Server Error: ${error.message}` })
   }
 })
 
+// Handle GET request for memory information
 app.get('/memory', (req, res) => {
+  // Execute shell command to get memory info
   exec('free -m', (error, stdout, stderr) => {
     if (error) {
       console.error(`Error executing command: ${error}`)
@@ -127,14 +119,18 @@ app.get('/memory', (req, res) => {
       }
     })
 
+    // Return memory information as JSON
     res.json({ data: memoryInfo })
   })
 })
 
+// Handle GET request for disk information
 app.get('/disk', async (req, res) => {
   try {
     const output = await executeCommand('df -h')
     const lines = output.split('\n')
+
+    // Create diskInfo object with necessary information
     const diskInfo = lines.slice(1).map((line) => {
       const parts = line.split(/\s+/)
       return {
@@ -153,10 +149,13 @@ app.get('/disk', async (req, res) => {
   }
 })
 
+// Handle GET request for process information
 app.get('/processes', async (req, res) => {
   try {
     const output = await executeCommand('ps aux --sort=-%mem,-%cpu')
     const lines = output.split('\n')
+
+    // Create processes object with necessary information
     const processes = lines.slice(1).map((line) => {
       const parts = line.split(/\s+/).filter(Boolean)
       return {
@@ -174,18 +173,46 @@ app.get('/processes', async (req, res) => {
   }
 })
 
+// Handle GET request for network information
 app.get('/network', async (req, res) => {
   try {
-    const output = await executeCommand('ifconfig')
-    const interfaces = output.split(/\n\n/).filter(Boolean)
+    const output = await executeCommand('ip -s link')
+    console.log('Command Output: ', output) // Debugging
+
+    const interfaces = output.split(/\n(?=\d+: )/).filter(Boolean)
+
     const networkInfo = interfaces.map((str) => {
-      const lines = str.split('\n')
+      const lines = str.split('\n').filter(Boolean)
+
       const firstLine = lines[0]
-      const name = firstLine.split(':')[0]
-      const inetLine = lines.find((line) => /inet /.test(line)) || ''
-      const inet = inetLine.split(' ')[1]
-      return { name, inet }
+      const name = firstLine.split(': ')[1].split('@')[0].trim()
+
+      const rxLineIndex = lines.findIndex((line) => /^    RX:/.test(line))
+      const txLineIndex = lines.findIndex((line) => /^    TX:/.test(line))
+
+      const rxMetrics = lines[rxLineIndex + 1]
+        ? lines[rxLineIndex + 1].split(/\s+/).filter(Boolean)
+        : []
+      const txMetrics = lines[txLineIndex + 1]
+        ? lines[txLineIndex + 1].split(/\s+/).filter(Boolean)
+        : []
+
+      const rxBytes = rxMetrics[0] || 'N/A'
+      const rxPackets = rxMetrics[1] || 'N/A'
+
+      const txBytes = txMetrics[0] || 'N/A'
+      const txPackets = txMetrics[1] || 'N/A'
+
+      return {
+        name,
+        rxBytes,
+        rxPackets,
+        txBytes,
+        txPackets,
+      }
     })
+
+    console.log('Parsed Network Info: ', networkInfo)
 
     res.json({ data: networkInfo })
   } catch (error) {
@@ -194,9 +221,12 @@ app.get('/network', async (req, res) => {
   }
 })
 
+// Handle GET request for system uptime
 app.get('/uptime', async (req, res) => {
   try {
     const uptimeInSeconds = os.uptime()
+
+    // Return uptime information as JSON
     res.json({ data: { uptime: uptimeInSeconds } })
   } catch (error) {
     console.error(`Error fetching uptime: ${error}`)
