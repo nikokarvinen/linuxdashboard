@@ -2,6 +2,8 @@ const express = require('express')
 const { exec } = require('child_process')
 const cors = require('cors')
 const os = require('os')
+const util = require('util')
+const execAsync = util.promisify(require('child_process').exec)
 
 const app = express()
 const port = 5000
@@ -98,30 +100,39 @@ app.get('/cpu', async (req, res) => {
   }
 })
 
-// Handle GET request for memory information
-app.get('/memory', (req, res) => {
-  // Execute shell command to get memory info
-  exec('free -m', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing command: ${error}`)
-      return res.status(500).json({ error: 'Internal Server Error' })
-    }
+// Function to make MB human-readable
+const mbToHumanReadable = (mb) => {
+  return mb + ' MB'
+}
 
+// Handle GET request for memory information
+app.get('/memory', async (req, res) => {
+  try {
+    const { stdout } = await execAsync('free -m')
     const lines = stdout.trim().split('\n')
     const memoryInfo = {}
 
     lines.forEach((line, index) => {
       if (index === 1) {
         const parts = line.split(/\s+/)
-        memoryInfo.total = parts[1]
-        memoryInfo.used = parts[2]
-        memoryInfo.free = parts[3]
+        memoryInfo.total = mbToHumanReadable(parts[1])
+        memoryInfo.used = mbToHumanReadable(parts[2])
+        memoryInfo.free = mbToHumanReadable(parts[3])
+        memoryInfo.shared = mbToHumanReadable(parts[4])
+        memoryInfo.buff_cache = mbToHumanReadable(parts[5])
+        memoryInfo.available = mbToHumanReadable(parts[6])
+        memoryInfo.usedPercentage =
+          ((parts[2] / parts[1]) * 100).toFixed(2) + '%'
+        memoryInfo.freePercentage =
+          ((parts[3] / parts[1]) * 100).toFixed(2) + '%'
       }
     })
 
-    // Return memory information as JSON
     res.json({ data: memoryInfo })
-  })
+  } catch (error) {
+    console.error(`Error executing command: ${error}`)
+    res.status(500).json({ error: `Internal Server Error: ${error.message}` })
+  }
 })
 
 // Handle GET request for disk information
@@ -227,10 +238,13 @@ const getDNSServers = async () => {
 
 // Function to make bytes human-readable
 const bytesToSize = (bytes) => {
+  if (!bytes || isNaN(bytes) || bytes === 'undefined' || bytes === 'N/A')
+    return 'N/A'
+
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
   if (bytes === 0) return '0 Byte'
   const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
-  return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i]
+  return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i]
 }
 
 app.get('/network', async (req, res) => {
@@ -245,23 +259,24 @@ app.get('/network', async (req, res) => {
       const lines = str.split('\n').filter(Boolean)
       const name = lines[0].split(': ')[1].split('@')[0].trim()
 
-      const { ipAddress, macAddress } = await getNetworkDetails(name)
-      const subnetMask = await getSubnetMask(name)
+      const { ipAddress = 'N/A', macAddress = 'N/A' } =
+        (await getNetworkDetails(name)) || {}
+      const subnetMask = (await getSubnetMask(name)) || 'N/A'
 
       const rxLineIndex = lines.findIndex((line) => /^    RX:/.test(line))
       const txLineIndex = lines.findIndex((line) => /^    TX:/.test(line))
 
       const rxMetricsLine =
-        rxLineIndex !== -1 ? lines[rxLineIndex + 1].trim() : ''
+        rxLineIndex !== -1 ? lines[rxLineIndex + 1].trim() : 'N/A'
       const txMetricsLine =
-        txLineIndex !== -1 ? lines[txLineIndex + 1].trim() : ''
+        txLineIndex !== -1 ? lines[txLineIndex + 1].trim() : 'N/A'
 
       const rxMetrics = rxMetricsLine
         ? rxMetricsLine.split(/\s+/).filter(Boolean)
-        : []
+        : ['N/A']
       const txMetrics = txMetricsLine
         ? txMetricsLine.split(/\s+/).filter(Boolean)
-        : []
+        : ['N/A']
 
       return {
         name,
@@ -270,9 +285,13 @@ app.get('/network', async (req, res) => {
         subnetMask,
         defaultGateway,
         dnsServers,
-        rxBytes: rxMetrics.length ? bytesToSize(rxMetrics[0]) : 'N/A',
+        rxBytes: bytesToSize(
+          rxMetrics.length ? parseInt(rxMetrics[0], 10) : 'N/A'
+        ),
         rxPackets: rxMetrics.length > 1 ? rxMetrics[1] : 'N/A',
-        txBytes: txMetrics.length ? bytesToSize(txMetrics[0]) : 'N/A',
+        txBytes: bytesToSize(
+          txMetrics.length ? parseInt(txMetrics[0], 10) : 'N/A'
+        ),
         txPackets: txMetrics.length > 1 ? txMetrics[1] : 'N/A',
       }
     })
