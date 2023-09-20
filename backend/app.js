@@ -173,47 +173,111 @@ app.get('/processes', async (req, res) => {
   }
 })
 
-// Handle GET request for network information
+// Function to fetch IP and MAC information
+const getNetworkDetails = async (interfaceName) => {
+  const ipAddressOutput = await executeCommand(
+    `ip -4 addr show ${interfaceName}`
+  )
+
+  const ipAddressMatch = ipAddressOutput.match(/inet (\d+\.\d+\.\d+\.\d+)/)
+  const ipAddress = ipAddressMatch ? ipAddressMatch[1] : 'N/A'
+
+  const macAddressOutput = await executeCommand(
+    `cat /sys/class/net/${interfaceName}/address`
+  )
+
+  const macAddress = macAddressOutput ? macAddressOutput.trim() : 'N/A'
+
+  return { ipAddress, macAddress }
+}
+
+const getSubnetMask = async (interfaceName) => {
+  try {
+    const output = await executeCommand(
+      `ip -o -f inet addr show ${interfaceName} | awk '{print $4}'`
+    )
+    const subnet = output.trim().split('/')[1]
+    return subnet ? subnet : 'N/A'
+  } catch (err) {
+    return 'N/A'
+  }
+}
+
+const getDefaultGateway = async () => {
+  try {
+    const output = await executeCommand(
+      `ip route | grep default | awk '{print $3}'`
+    )
+    return output.trim() || 'N/A'
+  } catch (err) {
+    return 'N/A'
+  }
+}
+
+const getDNSServers = async () => {
+  try {
+    const output = await executeCommand(
+      `cat /etc/resolv.conf | grep nameserver | awk '{print $2}'`
+    )
+    return output.trim().split('\n') || ['N/A']
+  } catch (err) {
+    return ['N/A']
+  }
+}
+
+// Function to make bytes human-readable
+const bytesToSize = (bytes) => {
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+  if (bytes === 0) return '0 Byte'
+  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
+  return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i]
+}
+
 app.get('/network', async (req, res) => {
   try {
-    const output = await executeCommand('ip -s link')
-    console.log('Command Output: ', output) // Debugging
+    const linkOutput = await executeCommand('ip -s link')
+    const defaultGateway = await getDefaultGateway()
+    const dnsServers = await getDNSServers()
 
-    const interfaces = output.split(/\n(?=\d+: )/).filter(Boolean)
+    const interfaces = linkOutput.split(/\n(?=\d+: )/).filter(Boolean)
 
-    const networkInfo = interfaces.map((str) => {
+    const networkInfoPromises = interfaces.map(async (str) => {
       const lines = str.split('\n').filter(Boolean)
+      const name = lines[0].split(': ')[1].split('@')[0].trim()
 
-      const firstLine = lines[0]
-      const name = firstLine.split(': ')[1].split('@')[0].trim()
+      const { ipAddress, macAddress } = await getNetworkDetails(name)
+      const subnetMask = await getSubnetMask(name)
 
       const rxLineIndex = lines.findIndex((line) => /^    RX:/.test(line))
       const txLineIndex = lines.findIndex((line) => /^    TX:/.test(line))
 
-      const rxMetrics = lines[rxLineIndex + 1]
-        ? lines[rxLineIndex + 1].split(/\s+/).filter(Boolean)
-        : []
-      const txMetrics = lines[txLineIndex + 1]
-        ? lines[txLineIndex + 1].split(/\s+/).filter(Boolean)
-        : []
+      const rxMetricsLine =
+        rxLineIndex !== -1 ? lines[rxLineIndex + 1].trim() : ''
+      const txMetricsLine =
+        txLineIndex !== -1 ? lines[txLineIndex + 1].trim() : ''
 
-      const rxBytes = rxMetrics[0] || 'N/A'
-      const rxPackets = rxMetrics[1] || 'N/A'
-
-      const txBytes = txMetrics[0] || 'N/A'
-      const txPackets = txMetrics[1] || 'N/A'
+      const rxMetrics = rxMetricsLine
+        ? rxMetricsLine.split(/\s+/).filter(Boolean)
+        : []
+      const txMetrics = txMetricsLine
+        ? txMetricsLine.split(/\s+/).filter(Boolean)
+        : []
 
       return {
         name,
-        rxBytes,
-        rxPackets,
-        txBytes,
-        txPackets,
+        ipAddress,
+        macAddress,
+        subnetMask,
+        defaultGateway,
+        dnsServers,
+        rxBytes: rxMetrics.length ? bytesToSize(rxMetrics[0]) : 'N/A',
+        rxPackets: rxMetrics.length > 1 ? rxMetrics[1] : 'N/A',
+        txBytes: txMetrics.length ? bytesToSize(txMetrics[0]) : 'N/A',
+        txPackets: txMetrics.length > 1 ? txMetrics[1] : 'N/A',
       }
     })
 
-    console.log('Parsed Network Info: ', networkInfo)
-
+    const networkInfo = await Promise.all(networkInfoPromises)
     res.json({ data: networkInfo })
   } catch (error) {
     console.error(`Error executing command: ${error}`)

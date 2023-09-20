@@ -144,6 +144,11 @@ const NetworkInfo = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
+                  <TableCell>IP Address</TableCell>
+                  <TableCell>MAC Address</TableCell>
+                  <TableCell>Subnet Mask</TableCell>
+                  <TableCell>Default Gateway</TableCell>
+                  <TableCell>DNS Servers</TableCell>
                   <TableCell>Received Bytes</TableCell>
                   <TableCell>Received Packets</TableCell>
                   <TableCell>Transmitted Bytes</TableCell>
@@ -154,10 +159,19 @@ const NetworkInfo = () => {
                 {sortedInfo.map((network) => (
                   <TableRow key={network.name}>
                     <TableCell>{network.name}</TableCell>
-                    <TableCell>{network.rxBytes}</TableCell>
-                    <TableCell>{network.rxPackets}</TableCell>
-                    <TableCell>{network.txBytes}</TableCell>
-                    <TableCell>{network.txPackets}</TableCell>
+                    <TableCell>{network.ipAddress || 'N/A'}</TableCell>
+                    <TableCell>{network.macAddress || 'N/A'}</TableCell>
+                    <TableCell>{network.subnetMask || 'N/A'}</TableCell>
+                    <TableCell>{network.defaultGateway || 'N/A'}</TableCell>
+                    <TableCell>
+                      {network.dnsServers
+                        ? network.dnsServers.join(', ')
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>{network.rxBytes || 'N/A'}</TableCell>
+                    <TableCell>{network.rxPackets || 'N/A'}</TableCell>
+                    <TableCell>{network.txBytes || 'N/A'}</TableCell>
+                    <TableCell>{network.txPackets || 'N/A'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
