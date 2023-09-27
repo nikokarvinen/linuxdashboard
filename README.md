@@ -1,6 +1,6 @@
 # Linux Dashboard
 
-A simple dashboard to monitor Linux system metrics, built with React and Node.js.
+This dashboard, crafted with React and Node.js, was developed as an educational endeavor to better understand and display Linux system metrics. While its primary purpose is for learning, it offers a streamlined view of Linux system data for those interested in monitoring their setups.
 
 ## Prerequisites
 
@@ -44,3 +44,23 @@ A simple dashboard to monitor Linux system metrics, built with React and Node.js
 - Memory info
 - System Uptime
 - More to come...
+
+## Screenshots
+
+Cpu Info
+![cpu](./images/cpu.jpg)
+
+Network Interfaces
+![Network](images/network.jpg)
+
+Processes
+![Processess](images/processes.jpg)
+
+Disk Info
+![Disk](./images/disk.jpg)
+
+Memory Info And System Uptime
+![memory and uptime](images/memory_and_uptime.jpg)
+
+Overwiev
+![overwiev](images/overwiev.jpg)
